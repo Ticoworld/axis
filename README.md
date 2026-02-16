@@ -29,43 +29,45 @@ Axis is built on a modern, high-speed stack designed for hybrid EVM/Bitcoin envi
 
 **1. Clone the repository**
 ```bash
-git clone [https://github.com/yourusername/axis-vibehack.git](https://github.com/yourusername/axis-vibehack.git)
+git clone https://github.com/yourusername/axis-vibehack.git
 cd axis-vibehack
-2. Install dependencies
+```
 
-Bash
+**2. Install dependencies**
+```bash
 npm install
-3. Configure Environment
+```
+
+**3. Configure Environment**
 Create a .env.local file in the root directory and add your AI API keys and RPC URLs as needed.
 
-4. Run the Development Server
+**4. Run the Development Server**
 
-Bash
+```bash
 npm run dev
+```
+
 Open http://localhost:3000 with your browser to access the Axis Terminal.
 
-🏆 Hackathon Checklist Completed
-[x] Front End Design: Custom Brutalist UI (No default libraries).
+## 🏆 Hackathon Checklist Completed
+- [x] Front End Design: Custom Brutalist UI (No default libraries).
+- [x] Xverse Wallet: Exclusive connection via SatoshiKit.
+- [x] User Flow: AI Prompt -> Contract Generation -> Deployment.
+- [x] Logic & Interaction: Intention pipeline mapping EVM writes to BTC transactions.
+- [x] Feedback Loop: Reactive UI updating based on network confirmations.
 
-[x] Xverse Wallet: Exclusive connection via SatoshiKit.
-
-[x] User Flow: AI Prompt -> Contract Generation -> Deployment.
-
-[x] Logic & Interaction: Intention pipeline mapping EVM writes to BTC transactions.
-
-[x] Feedback Loop: Reactive UI updating based on network confirmations.
-
-Secured by Bitcoin. Powered by AI.
+> Secured by Bitcoin. Powered by AI.
 
 
 ### Next Steps for GitHub
 
-Once you paste that in, open your terminal and push the code to your GitHub account:
+Push the code to your GitHub account:
 
 ```bash
 git init
 git add .
 git commit -m "Initial commit: Axis Terminal for Midl VibeHack"
 git branch -M main
-(Then follow GitHub's instructions to link your remote repository and push).
+git remote add origin https://github.com/<your-username>/<your-repo>.git
+git push -u origin main
 ```
