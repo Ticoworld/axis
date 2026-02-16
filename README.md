@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AXIS TERMINAL 🟧
 
-## Getting Started
+**The first AI-powered bonding curve launchpad on the Midl Network.**
 
-First, run the development server:
+Built for the **Midl VibeHack BTC 2026**. Axis transforms natural language prompts into fully liquid, tradeable ERC-20 tokens on Bitcoin Layer-2 in under 60 seconds.
+
+## 🚀 The Vision
+Launching a token on Bitcoin used to require complex smart contract knowledge, UTXO management, and liquidity seeding. Not anymore. Axis combines the friction-free power of the **Midl JS SDK** with AI-driven metadata generation wrapped in a high-performance, brutalist trading terminal.
+
+Go from *"What if?"* to *"Transaction Confirmed"* instantly.
+
+## ✨ Core Features
+* **Vibe Mode (AI Generation):** Type a simple prompt (e.g., "A meme coin about cats on Bitcoin") and our AI engine instantly generates the Token Name, Ticker, and total supply.
+* **Degen Mode (Manual):** Full control for advanced users to configure their own token parameters.
+* **Instant Liquidity:** Smart contracts deploy a deterministic mathematical bonding curve. No initial liquidity provision required.
+* **SatoshiKit Integration:** Seamless Web3 wallet connection exclusively supporting the Xverse wallet.
+* **Premium Brutalist UI:** Zero default components. Custom monospace typography, hard shadows, and a reactive terminal aesthetic built from scratch.
+
+## 🛠 Architecture & Tech Stack
+Axis is built on a modern, high-speed stack designed for hybrid EVM/Bitcoin environments.
+
+* **Frontend:** Next.js 15 (App Router), React 18, Tailwind CSS v4, Framer Motion.
+* **Web3 Connection:** `@midl-xyz/satoshi-kit`, `@midl-xyz/executor-react`, `wagmi`, `viem`.
+* **Smart Contracts:** Solidity `^0.8.24`, Hardhat, `@midl/hardhat-deploy`.
+* **Network:** Midl Regtest (EVM Compatible L2).
+* **Wallet:** Xverse (Native Segwit + EVM mapping).
+
+## 🧳 Local Setup & Deployment
+
+**1. Clone the repository**
+```bash
+git clone [https://github.com/yourusername/axis-vibehack.git](https://github.com/yourusername/axis-vibehack.git)
+cd axis-vibehack
+2. Install dependencies
+
+Bash
+npm install
+3. Configure Environment
+Create a .env.local file in the root directory and add your AI API keys and RPC URLs as needed.
+
+4. Run the Development Server
+
+Bash
+npm run dev
+Open http://localhost:3000 with your browser to access the Axis Terminal.
+
+🏆 Hackathon Checklist Completed
+[x] Front End Design: Custom Brutalist UI (No default libraries).
+
+[x] Xverse Wallet: Exclusive connection via SatoshiKit.
+
+[x] User Flow: AI Prompt -> Contract Generation -> Deployment.
+
+[x] Logic & Interaction: Intention pipeline mapping EVM writes to BTC transactions.
+
+[x] Feedback Loop: Reactive UI updating based on network confirmations.
+
+Secured by Bitcoin. Powered by AI.
+
+
+### Next Steps for GitHub
+
+Once you paste that in, open your terminal and push the code to your GitHub account:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git init
+git add .
+git commit -m "Initial commit: Axis Terminal for Midl VibeHack"
+git branch -M main
+(Then follow GitHub's instructions to link your remote repository and push).
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

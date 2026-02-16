@@ -1,0 +1,23 @@
+{
+  "name": "axis-contracts",
+  "version": "1.0.0",
+  "description": "Axis Bonding Curve Smart Contracts for Midl Network",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy": "npx hardhat deploy",
+    "deploy:regtest": "npx hardhat deploy --network regtest"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.6.1",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@midl/executor": "^3.0.2",
+    "@midl/hardhat-deploy": "^3.0.2",
+    "@openzeppelin/contracts": "^5.1.0",
+    "hardhat-deploy": "^1.0.4",
+    "viem": "npm:@midl/viem@^2.45.0"
+  }
+}
