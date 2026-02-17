@@ -218,7 +218,7 @@ export default function ExplorePage() {
               
               {filteredTokens.length === 0 && (
                  <div className="col-span-full py-12 text-center text-gray-500 font-mono border-b border-r border-[#333333]">
-                    // NO_RESULTS_FOUND
+                    NO_RESULTS_FOUND
                  </div>
               )}
             </div>

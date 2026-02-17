@@ -2,8 +2,10 @@ import { type HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-deploy";
 import "@midl/hardhat-deploy";
+import { MaestroSymphonyProvider, MempoolSpaceProvider } from "@midl/core";
 import { midlRegtest } from "@midl/executor";
 import * as dotenv from "dotenv";
+import "./tasks/create-token";
 
 dotenv.config();
 
@@ -25,15 +27,39 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC || "",
         confirmationsRequired: 1,
         btcConfirmationsRequired: 1,
-        network: "regtest",
         hardhatNetwork: "regtest",
+        network: {
+          explorerUrl: "https://mempool.staging.midl.xyz",
+          id: "regtest",
+          network: "regtest",
+        },
+        runesProviderFactory: () =>
+          new MaestroSymphonyProvider({
+            regtest: "https://runes.staging.midl.xyz",
+          }),
+        providerFactory: () =>
+          new MempoolSpaceProvider({
+            regtest: "https://mempool.staging.midl.xyz",
+          }),
       },
       regtest: {
         mnemonic: process.env.MNEMONIC || "",
         confirmationsRequired: 1,
         btcConfirmationsRequired: 1,
-        network: "regtest",
         hardhatNetwork: "regtest",
+        network: {
+          explorerUrl: "https://mempool.staging.midl.xyz",
+          id: "regtest",
+          network: "regtest",
+        },
+        runesProviderFactory: () =>
+          new MaestroSymphonyProvider({
+            regtest: "https://runes.staging.midl.xyz",
+          }),
+        providerFactory: () =>
+          new MempoolSpaceProvider({
+            regtest: "https://mempool.staging.midl.xyz",
+          }),
       },
     },
   },

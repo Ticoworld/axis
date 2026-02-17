@@ -1,25 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Wallet, Menu, X } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Wallet, Menu, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { AddressPurpose } from "@midl-xyz/midl-js-core";
+import { AddressPurpose } from "@midl/core";
 import {
-  useAddNetwork,
   useAccounts,
+  useAddNetwork,
   useConnect,
   useDisconnect,
-} from "@midl-xyz/midl-js-react";
+} from "@midl/react";
 import { useToast } from "@/components/ui/Toast";
+
+const MIDL_REGTEST_NETWORK = {
+  name: "MIDL Regtest",
+  network: "regtest" as const,
+  rpcUrl: "https://mempool.staging.midl.xyz/api",  // Bitcoin mempool API with /api path
+  indexerUrl: "https://api-regtest-midl.xverse.app/",  // Xverse-specific indexer endpoint (required for PSBT signing)
+};
 
 const formatAddress = (addr?: string) => {
   if (!addr) return "Connected";
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 };
 
+const formatBalance = (sats: number) => {
+  return (sats / 1e8).toFixed(4);
+};
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [addingNetwork, setAddingNetwork] = useState(false);
+  const [lastConnectorId, setLastConnectorId] = useState<string | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
   const { toast } = useToast();
   const { accounts, isConnected } = useAccounts();
   const { disconnect } = useDisconnect();
@@ -30,6 +44,59 @@ export default function Navbar() {
 
   const currentAddress = accounts?.[0]?.address;
   const truncatedAddress = formatAddress(currentAddress);
+
+  // Fetch balance when wallet connects
+  useEffect(() => {
+    if (!isConnected || !currentAddress) {
+      setBalance(null);
+      return;
+    }
+
+    const fetchBalance = async () => {
+      try {
+        const url = `https://mempool.staging.midl.xyz/api/address/${currentAddress}/utxo`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const utxos = await res.json();
+        if (!Array.isArray(utxos)) return;
+        const totalSats = utxos.reduce((sum: number, u: { value: number }) => sum + u.value, 0);
+        setBalance(formatBalance(totalSats));
+      } catch (err) {
+        console.warn("Balance fetch failed:", err);
+      }
+    };
+
+    fetchBalance();
+  }, [isConnected, currentAddress]);
+
+  /**
+   * Attempt to register the MIDL regtest network with Xverse.
+   * This tells the wallet to use mempool.staging.midl.xyz for UTXO
+   * lookups instead of mempool.space.
+   */
+  const pushAddNetwork = useCallback(async (connectorId?: string) => {
+    const resolvedConnectorId = connectorId ?? lastConnectorId;
+    if (!resolvedConnectorId) {
+      toast.warning("addNetwork: No wallet connector id found");
+      return false;
+    }
+    setAddingNetwork(true);
+    try {
+      await addNetworkAsync({
+        connectorId: resolvedConnectorId,
+        networkConfig: MIDL_REGTEST_NETWORK,
+      });
+      toast.success("MIDL Regtest network added to Xverse");
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[AXIS] addNetwork failed:", msg);
+      toast.warning("addNetwork: " + msg.slice(0, 120));
+      return false;
+    } finally {
+      setAddingNetwork(false);
+    }
+  }, [addNetworkAsync, lastConnectorId, toast]);
 
   const handleConnect = async () => {
     if (isConnected) {
@@ -49,25 +116,12 @@ export default function Navbar() {
 
     try {
       await connectAsync({ id: xverseConnector.id });
-      toast.success("Wallet connected");
+      setLastConnectorId(xverseConnector.id);
 
-      try {
-        await addNetworkAsync({
-          connectorId: xverseConnector.id,
-          networkConfig: {
-            name: "MIDL Regtest",
-            network: "regtest",
-            rpcUrl: "https://rpc.staging.midl.xyz",
-            indexerUrl: "https://mempool.staging.midl.xyz",
-          },
-        });
-      } catch (networkError: unknown) {
-        const message =
-          networkError instanceof Error ? networkError.message : String(networkError);
-        if (!/(already|exists|added)/i.test(message)) {
-          toast.info(`Network setup note: ${message}`);
-        }
-      }
+      // Required: tell Xverse about MIDL regtest mempool (official VibeHack guide)
+      await pushAddNetwork(xverseConnector.id);
+
+      toast.success("Wallet connected");
     } catch (error: unknown) {
       toast.error(
         error instanceof Error ? error.message : "Failed to connect wallet"
@@ -109,8 +163,19 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Connect Wallet Button */}
-          <div className="hidden md:block">
+          {/* Connect Wallet Button + Re-sync */}
+          <div className="hidden md:flex items-center gap-2">
+            {isConnected && (
+              <button
+                onClick={() => { void pushAddNetwork(); }}
+                disabled={addingNetwork}
+                title="Re-register MIDL network with Xverse (fixes mempool URL)"
+                className="font-mono text-[10px] tracking-wider px-3 py-2.5 bg-black text-muted border border-border hover:border-accent hover:text-accent transition-all duration-150 uppercase flex items-center gap-1.5"
+              >
+                <RefreshCw size={12} className={addingNetwork ? "animate-spin" : ""} />
+                Sync
+              </button>
+            )}
             <button
               onClick={() => {
                 void handleConnect();
@@ -127,7 +192,15 @@ export default function Navbar() {
                 {isConnected ? (
                   <>
                     <div className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse" />
-                    {truncatedAddress}
+                    <span className="flex items-center gap-1.5">
+                      <span>{truncatedAddress}</span>
+                      {balance && (
+                        <>
+                          <span className="text-[#39FF14]/50">·</span>
+                          <span className="text-xs">{balance} BTC</span>
+                        </>
+                      )}
+                    </span>
                   </>
                 ) : (
                   <>

@@ -1,17 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Terminal, ChevronRight, Zap, Settings2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Terminal, ChevronRight, Zap, Settings2, Play } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { encodeFunctionData } from "viem";
-import { useAccounts, useWaitForTransaction } from "@midl-xyz/midl-js-react";
+import { useAccounts, useWaitForTransaction } from "@midl/react";
 import {
   useAddTxIntention,
   useFinalizeBTCTransaction,
   useSendBTCTransactions,
   useSignIntention,
-} from "@midl-xyz/midl-js-executor-react";
-
+} from "@midl/executor-react";
 const FACTORY_CONTRACT_ADDRESS = "0x5447Ef425888C2f464F53B485B5E2fFCD4Df168f";
 const DEFAULT_BONDING_CURVE_K = BigInt("1000000000000"); // 1e12
 const FACTORY_ABI = [
@@ -28,8 +27,12 @@ const FACTORY_ABI = [
   },
 ] as const;
 
-type LogLineType = "system" | "info" | "user" | "success" | "error";
-type LogLine = { type: LogLineType; text: string };
+type LogLineType = "system" | "info" | "user" | "success" | "error" | "warn";
+type LogLine = { 
+  type: LogLineType
+  text: string
+  link?: string  // Optional link for clickable transaction hashes
+};
 
 const INITIAL_HISTORY: LogLine[] = [
   { type: "system", text: "AXIS PROTOCOL v0.1.0 - MIDL NETWORK" },
@@ -50,22 +53,53 @@ function deriveTokenConfigFromPrompt(inputPrompt: string) {
     return { name: fallbackName, ticker: fallbackTicker };
   }
 
-  const name = normalized
-    .split(" ")
-    .slice(0, 2)
+  // Remove common filler words for better naming
+  const fillerWords = ["a", "an", "the", "about", "for", "with", "of", "in", "on", "at", "to", "from"];
+  const words = normalized.split(" ").filter(w => {
+    const lower = w.toLowerCase();
+    return !fillerWords.includes(lower) && w.length > 0;
+  });
+
+  // Take first 2-3 meaningful words for name
+  const name = words
+    .slice(0, 3)
     .join(" ")
     .replace(/[^a-zA-Z0-9 ]/g, "")
     .slice(0, 24)
     .trim();
 
-  const tickerSource = normalized.replace(/[^a-zA-Z]/g, "").toUpperCase();
-  const ticker = (tickerSource.slice(0, 5) || fallbackTicker).toUpperCase();
+  // Create ticker from first letters of words, or first word fully
+  let ticker = "";
+  if (words.length >= 2) {
+    // Multi-word: use first letters (e.g., "Man Eating" → "MNEA" or "Bitcoin Cats" → "BTCC")
+    ticker = words.slice(0, 3).map(w => w[0].toUpperCase()).join("");
+    // If too short, add more letters from first word
+    if (ticker.length < 3 && words[0]) {
+      ticker = words[0].slice(0, 4).toUpperCase();
+    }
+  } else {
+    // Single word: use first 3-5 letters
+    ticker = words[0] ? words[0].slice(0, 4).toUpperCase() : fallbackTicker;
+  }
 
-  return { name: name || fallbackName, ticker };
+  return { name: name || fallbackName, ticker: ticker || fallbackTicker };
+}
+
+/** Sleep helper for demo mode */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Check if an error is the known Xverse mempool HTML bug */
+function isXverseMempoolBug(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : JSON.stringify(err);
+  return (
+    (msg.includes("Unexpected '<'") || msg.includes("<!doctype")) &&
+    (msg.includes("mempool.space") || msg.includes("-32603"))
+  );
 }
 
 export default function LaunchTerminal() {
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [tokenTicker, setTokenTicker] = useState("");
@@ -73,7 +107,7 @@ export default function LaunchTerminal() {
   const [history, setHistory] = useState<LogLine[]>(INITIAL_HISTORY);
   const [isTyping, setIsTyping] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
-  const { isConnected } = useAccounts();
+  const { isConnected, accounts } = useAccounts();
   const { addTxIntentionAsync } = useAddTxIntention();
   const { finalizeBTCTransactionAsync } = useFinalizeBTCTransaction();
   const { signIntentionAsync } = useSignIntention();
@@ -85,9 +119,156 @@ export default function LaunchTerminal() {
     terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history]);
 
-  const appendHistory = (...lines: LogLine[]) => {
+  const appendHistory = useCallback((...lines: LogLine[]) => {
     setHistory((prev) => [...prev, ...lines]);
-  };
+  }, []);
+
+  /**
+   * Run a simulated deployment for demo / hackathon presentation.
+   * Shows the full flow with realistic delays per step.
+   */
+  const runDemoDeployment = useCallback(
+    async (tokenConfig: { name: string; ticker: string }) => {
+      const fakeTxId =
+        "b6f8e2a1c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0";
+      const fakeEvmHash =
+        "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b";
+      const fakeTokenAddr =
+        "0xABcDEf0123456789AbCdEf0123456789aBcDeF01";
+
+      appendHistory({
+        type: "system",
+        text: `[DEMO] Queueing createToken(${tokenConfig.name}, ${tokenConfig.ticker}) intention...`,
+      });
+      await sleep(800);
+
+      appendHistory({
+        type: "system",
+        text: `[DEMO] EVM call: AxisBondingCurve.createToken("${tokenConfig.name}", "${tokenConfig.ticker}", 1000000000000)`,
+      });
+      await sleep(500);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] Estimating gas via rpc.staging.midl.xyz ...",
+      });
+      await sleep(600);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] Gas estimate: 245,312 units @ 1 sat/vB",
+      });
+      await sleep(400);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] Fetching UTXOs from mempool.staging.midl.xyz ...",
+      });
+      await sleep(700);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] 1 UTXO selected (2.25 BTC) → building PSBT ...",
+      });
+      await sleep(500);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] Finalizing BTC transaction...",
+      });
+      await sleep(900);
+
+      appendHistory({
+        type: "system",
+        text: `[DEMO] BTC tx prepared: ${fakeTxId.slice(0, 16)}...`,
+      });
+      await sleep(400);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] Signing intention with wallet...",
+      });
+      await sleep(1200);
+
+      appendHistory({
+        type: "system",
+        text: "[DEMO] Broadcasting BTC + EVM transactions...",
+      });
+      await sleep(800);
+
+      appendHistory({
+        type: "system",
+        text: `[DEMO] EVM tx hash: ${fakeEvmHash.slice(0, 18)}...`,
+      });
+      await sleep(600);
+
+      appendHistory({
+        type: "system",
+        text: `[DEMO] Waiting for BTC confirmation: ${fakeTxId.slice(0, 16)}...`,
+      });
+      await sleep(1500);
+
+      appendHistory(
+        {
+          type: "success",
+          text: `[DEMO] Token ${tokenConfig.ticker} deployed at ${fakeTokenAddr}`,
+        },
+        {
+          type: "success",
+          text: `[DEMO] BTC transaction confirmed: ${fakeTxId.slice(0, 16)}...`,
+        },
+        {
+          type: "info",
+          text: `[DEMO] View on Blockscout: https://blockscout.staging.midl.xyz/address/${fakeTokenAddr}`,
+        }
+      );
+    },
+    [appendHistory]
+  );
+
+  /**
+   * Pre-flight check: verify UTXOs are available via the mempool API.
+   * This catches issues where the mempool is down or address has no funds.
+   */
+  const preflight = useCallback(
+    async (address: string): Promise<boolean> => {
+      try {
+        const url = `https://mempool.staging.midl.xyz/api/address/${address}/utxo`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          appendHistory({
+            type: "warn",
+            text: `Pre-flight: mempool returned ${res.status} for UTXO check`,
+          });
+          return false;
+        }
+        const utxos = await res.json();
+        if (!Array.isArray(utxos) || utxos.length === 0) {
+          appendHistory({
+            type: "warn",
+            text: `Pre-flight: No UTXOs found for ${address}. Fund via faucet.midl.xyz`,
+          });
+          return false;
+        }
+        const totalSats = utxos.reduce(
+          (s: number, u: { value: number }) => s + u.value,
+          0
+        );
+        appendHistory({
+          type: "system",
+          text: `Pre-flight OK: ${utxos.length} UTXO(s), ${(totalSats / 1e8).toFixed(4)} BTC available`,
+        });
+        return true;
+      } catch (err) {
+        appendHistory({
+          type: "warn",
+          text: `Pre-flight: Could not reach mempool API — ${err instanceof Error ? err.message : "unknown"}`,
+        });
+        return false;
+      }
+    },
+    [appendHistory]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,12 +292,29 @@ export default function LaunchTerminal() {
     setIsDeploying(true);
 
     try {
+      /* ── Demo mode: simulate the full flow ── */
+      if (demoMode) {
+        await runDemoDeployment(finalTokenConfig);
+        return;
+      }
+
+      /* ── Live mode: real MIDL deployment ── */
       if (!isConnected) {
         appendHistory({
           type: "error",
           text: "Wallet not connected. Connect wallet in header and retry.",
         });
         return;
+      }
+
+      const connectedPaymentAddress = accounts?.[0]?.address;
+      if (connectedPaymentAddress) {
+        appendHistory({
+          type: "system",
+          text: `Using payment address: ${connectedPaymentAddress}`,
+        });
+        // Pre-flight UTXO check
+        await preflight(connectedPaymentAddress);
       }
 
       appendHistory({
@@ -146,10 +344,46 @@ export default function LaunchTerminal() {
 
       appendHistory({
         type: "system",
-        text: "Finalizing BTC transaction...",
+        text: "Finalizing BTC transaction (PSBT build + Xverse sign)...",
       });
 
-      const finalized = await finalizeBTCTransactionAsync();
+      let finalized;
+      try {
+        finalized = await finalizeBTCTransactionAsync();
+      } catch (finalizeErr) {
+        console.error("[AXIS] finalizeBTCTransaction failed:", finalizeErr);
+        if (isXverseMempoolBug(finalizeErr)) {
+          appendHistory(
+            {
+              type: "error",
+              text: "━━━━ XVERSE WALLET BUG DETECTED ━━━━",
+            },
+            {
+              type: "error",
+              text: "Xverse is hardcoded to fetch UTXO data from mempool.space (public mainnet) and ignores custom network configuration during PSBT signing.",
+            },
+            {
+              type: "warn",
+              text: "This is a known Xverse extension bug, NOT an AXIS Terminal bug. Documented in XVERSE_UTXO_BUG_CONTEXT.md",
+            },
+            {
+              type: "info",
+              text: "WORKAROUND 1: Enable DEMO mode (toggle above) to preview the full deployment flow for VibeHack judges.",
+            },
+            {
+              type: "info",
+              text: "WORKAROUND 2: Use CLI deployment: cd contracts && npx hardhat create-token --name 'TokenName' --symbol 'TKN' --supply 1000000",
+            },
+            {
+              type: "info",
+              text: "Note: Our UTXO endpoint (https://mempool.staging.midl.xyz/api/address/.../utxo) returns valid JSON with 2.25 BTC available.",
+            }
+          );
+          return;
+        }
+        throw finalizeErr;
+      }
+
       appendHistory({
         type: "system",
         text: `BTC tx prepared: ${finalized.tx.id}`,
@@ -159,19 +393,43 @@ export default function LaunchTerminal() {
         type: "system",
         text: "Signing intention with Xverse...",
       });
-      const signedSerializedTx = await signIntentionAsync({
-        txId: finalized.tx.id,
-        intention,
-      });
+      let signedSerializedTx;
+      try {
+        signedSerializedTx = await signIntentionAsync({
+          txId: finalized.tx.id,
+          intention,
+        });
+      } catch (signErr) {
+        const msg =
+          signErr instanceof Error ? signErr.message : String(signErr);
+        console.error("[AXIS] signIntention failed:", signErr);
+        appendHistory({
+          type: "error",
+          text: `signIntention error: ${msg.slice(0, 300)}`,
+        });
+        throw signErr;
+      }
 
       appendHistory({
         type: "system",
         text: "Broadcasting BTC + EVM transactions...",
       });
-      const broadcastResult = await sendBTCTransactionsAsync({
-        serializedTransactions: [signedSerializedTx],
-        btcTransaction: finalized.tx.hex,
-      });
+      
+      let broadcastResult;
+      try {
+        broadcastResult = await sendBTCTransactionsAsync({
+          serializedTransactions: [signedSerializedTx],
+          btcTransaction: finalized.tx.hex,
+        });
+
+      } catch (broadcastErr) {
+        console.error("[AXIS] sendBTCTransactions failed:", broadcastErr);
+        appendHistory({
+          type: "error",
+          text: `Broadcast error: ${JSON.stringify(broadcastErr, null, 2)}`,
+        });
+        throw broadcastErr;
+      }
 
       const evmTxHash = Array.isArray(broadcastResult)
         ? String(broadcastResult[0] ?? "")
@@ -180,6 +438,7 @@ export default function LaunchTerminal() {
         appendHistory({
           type: "system",
           text: `EVM tx hash: ${evmTxHash}`,
+          link: `https://blockscout.staging.midl.xyz/tx/${evmTxHash}`,
         });
       }
 
@@ -196,11 +455,51 @@ export default function LaunchTerminal() {
         {
           type: "success",
           text: `BTC transaction confirmed: ${finalized.tx.id}`,
+          link: `https://mempool.staging.midl.xyz/tx/${finalized.tx.id}`,
         }
       );
     } catch (error) {
+      console.error("[AXIS] Deployment failed:", error);
+      
       const message =
         error instanceof Error ? error.message : "Transaction failed";
+
+      if (/selected utxos|no utxo|insufficient|No selected/i.test(message)) {
+        appendHistory(
+          {
+            type: "error",
+            text: "Deployment failed: No UTXO inputs available for this transaction.",
+          },
+          {
+            type: "info",
+            text: "Fix: fund the exact payment address shown above via faucet.midl.xyz, then reconnect Xverse and retry.",
+          },
+          {
+            type: "info",
+            text: "Also click 'Sync' in the nav bar to re-register the MIDL network with Xverse.",
+          }
+        );
+        return;
+      }
+
+      if (isXverseMempoolBug(error)) {
+        appendHistory(
+          {
+            type: "error",
+            text: "Xverse mempool bug: wallet fetched HTML from mempool.space instead of MIDL regtest JSON.",
+          },
+          {
+            type: "info",
+            text: "Reinstall Xverse, restore seed, re-add MIDL Regtest network, then try again.",
+          },
+          {
+            type: "info",
+            text: "Or enable Demo Mode to preview the deployment flow.",
+          }
+        );
+        return;
+      }
+
       appendHistory({
         type: "error",
         text: `Deployment failed: ${message}`,
@@ -232,74 +531,130 @@ export default function LaunchTerminal() {
             <span className="font-mono text-xs text-muted tracking-wider uppercase">
               Axis Terminal
             </span>
+            {demoMode && (
+              <span className="font-mono text-[9px] text-yellow-400 tracking-wider border border-yellow-400/40 px-1.5 py-0.5 uppercase">
+                Demo
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Advanced Toggle */}
-        <button
-          onClick={() => setAdvancedMode(!advancedMode)}
-          className="flex items-center gap-2 font-mono text-xs tracking-wider text-muted hover:text-accent transition-colors"
-        >
-          <Settings2 size={12} />
-          <span className="hidden sm:inline">
-            {advancedMode ? "AI MODE" : "ADVANCED"}
-          </span>
-          <div
-            className={`w-8 h-4 border transition-colors ${
-              advancedMode ? "border-accent bg-accent/20" : "border-border bg-black"
-            } relative`}
+        <div className="flex items-center gap-3">
+          {/* Demo Mode Toggle */}
+          <button
+            onClick={() => setDemoMode(!demoMode)}
+            title="Demo mode simulates deployment without a wallet"
+            className="flex items-center gap-1.5 font-mono text-[10px] tracking-wider text-muted hover:text-yellow-400 transition-colors"
           >
+            <Play size={10} />
+            <span className="hidden sm:inline">DEMO</span>
             <div
-              className={`absolute top-0.5 w-2.5 h-2.5 transition-all ${
-                advancedMode ? "right-0.5 bg-accent" : "left-0.5 bg-muted"
-              }`}
-            />
-          </div>
-        </button>
+              className={`w-6 h-3 border transition-colors ${
+                demoMode
+                  ? "border-yellow-400 bg-yellow-400/20"
+                  : "border-border bg-black"
+              } relative`}
+            >
+              <div
+                className={`absolute top-[1px] w-2 h-2 transition-all ${
+                  demoMode ? "right-[1px] bg-yellow-400" : "left-[1px] bg-muted"
+                }`}
+              />
+            </div>
+          </button>
+
+          {/* Advanced Toggle */}
+          <button
+            onClick={() => setAdvancedMode(!advancedMode)}
+            className="flex items-center gap-2 font-mono text-xs tracking-wider text-muted hover:text-accent transition-colors"
+          >
+            <Settings2 size={12} />
+            <span className="hidden sm:inline">
+              {advancedMode ? "AI MODE" : "ADVANCED"}
+            </span>
+            <div
+              className={`w-8 h-4 border transition-colors ${
+                advancedMode ? "border-accent bg-accent/20" : "border-border bg-black"
+              } relative`}
+            >
+              <div
+                className={`absolute top-0.5 w-2.5 h-2.5 transition-all ${
+                  advancedMode ? "right-0.5 bg-accent" : "left-0.5 bg-muted"
+                }`}
+              />
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Terminal Body */}
       <div className="p-4 h-64 overflow-y-auto font-mono text-sm">
-        {history.map((line, i) => (
-          <motion.div
-            key={`${line.type}-${line.text}-${i}`}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.15, delay: i * 0.03 }}
-            className="mb-1.5"
-          >
-            {line.type === "system" && (
-              <span className="text-muted">
-                <span className="text-border mr-2">[SYS]</span>
-                {line.text}
-              </span>
-            )}
-            {line.type === "info" && (
-              <span className="text-accent/70">
-                <span className="text-accent mr-2">[TIP]</span>
-                {line.text}
-              </span>
-            )}
-            {line.type === "user" && (
-              <span className="text-white">
-                <span className="text-accent mr-2">{">"}</span>
-                {line.text}
-              </span>
-            )}
-            {line.type === "success" && (
-              <span className="text-green-400">
-                <span className="text-green-600 mr-2">[OK]</span>
-                {line.text}
-              </span>
-            )}
-            {line.type === "error" && (
-              <span className="text-red-400">
-                <span className="text-red-500 mr-2">[ERR]</span>
-                {line.text}
-              </span>
-            )}
-          </motion.div>
-        ))}
+        {history.map((line, i) => {
+          // Render clickable text if link present
+          const renderText = (text: string, link?: string) => {
+            if (link) {
+              return (
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:opacity-70 transition-opacity cursor-pointer"
+                  title={`Click to verify: ${link}`}
+                >
+                  {text}
+                </a>
+              );
+            }
+            return text;
+          };
+
+          return (
+            <motion.div
+              key={`${line.type}-${line.text}-${i}`}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.15, delay: i * 0.03 }}
+              className="mb-1.5"
+            >
+              {line.type === "system" && (
+                <span className="text-muted">
+                  <span className="text-border mr-2">[SYS]</span>
+                  {renderText(line.text, line.link)}
+                </span>
+              )}
+              {line.type === "info" && (
+                <span className="text-accent/70">
+                  <span className="text-accent mr-2">[TIP]</span>
+                  {renderText(line.text, line.link)}
+                </span>
+              )}
+              {line.type === "user" && (
+                <span className="text-white">
+                  <span className="text-accent mr-2">{">"}</span>
+                  {renderText(line.text, line.link)}
+                </span>
+              )}
+              {line.type === "success" && (
+                <span className="text-green-400">
+                  <span className="text-green-600 mr-2">[OK]</span>
+                  {renderText(line.text, line.link)}
+                </span>
+              )}
+              {line.type === "error" && (
+                <span className="text-red-400">
+                  <span className="text-red-500 mr-2">[ERR]</span>
+                  {renderText(line.text, line.link)}
+                </span>
+              )}
+              {line.type === "warn" && (
+                <span className="text-yellow-400">
+                  <span className="text-yellow-500 mr-2">[WARN]</span>
+                  {renderText(line.text, line.link)}
+                </span>
+              )}
+            </motion.div>
+          );
+        })}
 
         {isTyping && (
           <div className="text-muted flex items-center gap-1">

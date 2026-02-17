@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   webpack: (config) => {
@@ -21,12 +20,6 @@ const nextConfig: NextConfig = {
     } else {
       config.externals = mappedExternals;
     }
-
-    config.resolve ??= {};
-    config.resolve.alias = {
-      ...(config.resolve.alias ?? {}),
-      "viem/actions$": path.resolve(process.cwd(), "src/lib/viem-actions-shim.ts"),
-    };
 
     return config;
   },

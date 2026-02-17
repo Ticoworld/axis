@@ -6,7 +6,8 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "deploy": "npx hardhat deploy",
-    "deploy:regtest": "npx hardhat deploy --network regtest"
+    "deploy:regtest": "npx hardhat deploy --network regtest",
+    "create-token": "npx hardhat create-token"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
