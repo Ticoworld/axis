@@ -83,9 +83,9 @@ This was documented as the default indexer URL that should remain in place for p
 
 ### Live Deployments
 **Successfully deployed tokens via browser:**
-- **Groking (GRK)** 
-  - Bitcoin TX: `b035a83fa485fabe2c096f99b1ea1a10dc3d75f31b76c699e698f1151015bffb`
-  - EVM TX: `0x3c7394f3881bc4edabbdee70ec5d7adf06306c2e339688bc26a7dea7e921eb23`
+- **Orbital (ORB)** 
+  - Bitcoin TX: `c57455d858c5543d55318b82a467f1c6ca41f31996714ebbfcfef2433fc33936`
+  - EVM TX: `0xf479a4d3fcbc6850c8080fc1ceeff65a0f5fb6d03a8c1c40f3427c66ab3f0d1b`
 
 **AXIS Terminal fully meets all VibeHack requirements:**
 
@@ -98,7 +98,7 @@ This was documented as the default indexer URL that should remain in place for p
 4. **✅ Smart Contract Logic**: Factory contract deployed at `0x5447Ef425888C2f464F53B485B5E2fFCD4Df168f` with bonding curve mechanics fully operational.
 
 5. **✅ On-Chain Proof** - Successfully deployed tokens via browser UI:
-   - **Groking (GRK)**: [View on Blockscout](https://blockscout.staging.midl.xyz/tx/0x3c7394f3881bc4edabbdee70ec5d7adf06306c2e339688bc26a7dea7e921eb23)
+   - **Orbital (ORB)**: [View on Blockscout](https://blockscout.staging.midl.xyz/tx/0xf479a4d3fcbc6850c8080fc1ceeff65a0f5fb6d03a8c1c40f3427c66ab3f0d1b)
    - **Additional deployments**: Multiple successful browser-based deployments demonstrating stability
 
 6. **✅ Professional UX**: Real-time terminal feedback, pre-flight UTXO checks, clear error messages, and optional DEMO mode for presentations without spending real BTC.
