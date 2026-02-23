@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useCallback, useEffect } from "react";
 import { Wallet, Menu, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -31,6 +32,12 @@ const formatBalance = (sats: number) => {
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Close mobile menu on route change
+    setMobileOpen(false);
+  }, [pathname]);
   const [addingNetwork, setAddingNetwork] = useState(false);
   const [lastConnectorId, setLastConnectorId] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
@@ -213,9 +220,10 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
+          {/* Mobile Menu Toggle */}
           <button
             className="md:hidden text-muted hover:text-accent transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
+            onClick={() => setMobileOpen((v) => !v)}
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -235,18 +243,21 @@ export default function Navbar() {
             <div className="px-4 py-4 flex flex-col gap-4">
               <Link
                 href="/"
+                onClick={() => setMobileOpen(false)}
                 className="font-mono text-xs tracking-wider text-muted hover:text-accent transition-colors uppercase"
               >
                 Launch
               </Link>
               <Link
                 href="/explore"
+                onClick={() => setMobileOpen(false)}
                 className="font-mono text-xs tracking-wider text-muted hover:text-accent transition-colors uppercase"
               >
                 Explore
               </Link>
               <a
                 href="#"
+                onClick={() => setMobileOpen(false)}
                 className="font-mono text-xs tracking-wider text-muted hover:text-accent transition-colors uppercase"
               >
                 Docs

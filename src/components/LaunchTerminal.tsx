@@ -736,7 +736,7 @@ export default function LaunchTerminal() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center"
+              className="flex items-center min-w-0 w-full"
             >
               <span className="text-accent font-mono text-sm pl-4 pr-2 py-3 select-none">
                 <ChevronRight size={14} />
@@ -746,12 +746,12 @@ export default function LaunchTerminal() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder='Describe your token... e.g. "A meme coin about cats on Bitcoin"'
-                className="flex-1 bg-transparent py-3 pr-4 font-mono text-sm text-white placeholder:text-border focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent py-3 pr-4 font-mono text-sm text-white placeholder:text-border focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={isDeploying}
-                className="font-mono text-xs tracking-wider px-6 py-3 bg-accent text-black hover:bg-accent-hover transition-colors uppercase border-l border-border flex items-center gap-2"
+                className="font-mono text-xs tracking-wider px-6 py-3 bg-accent text-black hover:bg-accent-hover transition-colors uppercase border-l border-border flex items-center gap-2 flex-shrink-0"
               >
                 <Zap size={12} />
                 {isDeploying ? "Processing..." : "Deploy"}
